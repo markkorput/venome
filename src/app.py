@@ -13,7 +13,7 @@ class App:
     print('loading audio file: {}...'.format(filepath))
     t1 = time.time()
 
-    audio = AudioSegment.from_wav(filepath)
+    audio = AudioSegment.from_file(filepath)
     # self.audio.channels # => 2
     # self.audio.sample_width # => 2 (2 bytes / sample?)
     # self.audio.frame_with # => 4 (4 bytes / frame; channelsxsample_width)
@@ -39,7 +39,7 @@ class App:
 if __name__ == '__main__':
   parser = OptionParser()
   parser.add_option('-v', '--verbose', dest='verbose', action="store_true", default=False)
-  parser.add_option('-i', '--in-file', dest='infile', default='data/test_large.wav')
+  parser.add_option('-i', '--in-file', dest='infile', default='data/test.ogg')
   # parser.add_option('-y', '--yml', '--yaml', '--config-file', dest='config_file', default=None)
 
   opts, args = parser.parse_args()
