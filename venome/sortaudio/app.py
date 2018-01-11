@@ -23,7 +23,7 @@ class App:
 
     self.load(self.opts.infile)
     self.process(float(self.opts.chunkSize)*1000, self.opts.chunkfile)
-    self.export(self.opts.infile+'.mp3')
+    self.export(self.opts.outfile if self.opts.outfile else self.opts.infile+'.mp3')
 
     self.running=False # True
 
@@ -149,7 +149,7 @@ if __name__ == '__main__':
   parser.add_option('-i', '--in-file', dest='infile', default='data/test.ogg')
   parser.add_option('-s', '--chunksize', dest='chunkSize', default=1)
   parser.add_option('-c', '--chunk-file', dest='chunkfile', default=None)
-  # parser.add_option('-o', '--out-file', dest='outfile', default=None)
+  parser.add_option('-o', '--out-file', dest='outfile', default=None)
   # parser.add_option('-y', '--yml', '--yaml', '--config-file', dest='config_file', default=None)
 
   opts, args = parser.parse_args()
