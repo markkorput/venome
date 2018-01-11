@@ -1,40 +1,37 @@
 from optparse import OptionParser
 from pydub import AudioSegment
 import numpy as np
-import time, math
-
-class Timer:
-  def __init__(self, text='timer'):
-    self.text = text
-
-  def start(self):
-    self.startTime = time.time()
-    return self
-
-  def end(self):
-    print('{} ({} seconds)'.format(self.text, time.time()-self.startTime))
+import math, json
+from .timer import Timer
 
 class Chunk:
-  def __init__(self, frames, startFrame, originalIndex, sortedIndex=None, volume=None):
+  def __init__(self, frames, startFrame, sortedIndex=None, volume=None):
     self.frames = frames
     self.startFrame = startFrame
-    self.originalIndex = originalIndex
     self.volume = volume
     self.sortedIndex = sortedIndex
+
+  def startTime(self, fps):
+    return self.startFrame / fps
+
+  def duration(self, fps):
+    return len(self.frames) / fps if self.frames else 0
 
 class App:
   def __init__(self, opts={}):
     self.opts = opts
+
     self.load(self.opts.infile)
-    self.process(float(self.opts.chunkSize)*1000)
+    self.process(float(self.opts.chunkSize)*1000, self.opts.chunkfile)
     self.export(self.opts.infile+'.mp3')
+
     self.running=False # True
 
   def load(self, filepath):
-    print('loading audio file: {}...'.format(filepath), end='')
-    t1 = time.time()
-
+    timer = Timer('loading audio file: {}...'.format(filepath))
     self.audioSegment = AudioSegment.from_file(filepath)
+    timer.end()
+
     # self.audio.channels # => 2
     # self.audio.sample_width # => 2 (2 bytes / sample?)
     # self.audio.frame_width # => 4 (4 bytes / frame; channelsxsample_width)
@@ -46,31 +43,34 @@ class App:
 
     # self.samples = np.fromstring(self.audio._data, np.int16)
     # data = audio.get_array_of_samples()
-    print(' done ({} seconds)'.format(time.time()-t1))
 
-  def process(self, chunkMs):
+  def process(self, chunkMs, chunkfile=None):
 
-    timer = Timer('getChunks').start()
+    timer = Timer('getChunks')
     chunks = App.getChunks(self.audioSegment, chunkMs)
     timer.end()
 
-    timer = Timer('populateVolumes').start()
+    timer = Timer('populateVolumes')
     App.populateVolumes(chunks, self.audioSegment.frame_width)
     timer.end()
 
-    # timer = Timer('populateSortedIndices').start()
+    # timer = Timer('populateSortedIndices')
     # App.populateSortedIndices(chunks)
     # timer.end()
 
-    timer = Timer('applySortedChunks').start()
+    timer = Timer('applySortedChunks')
     App.applySortedChunks(self.audioSegment, chunks)
     timer.end()
 
+    if chunkfile:
+      timer = Timer('writeChunkFile to {}'.format(chunkfile))
+      App.writeChunkFile(chunks, chunkfile, self.audioSegment.frame_rate)
+      timer.end()
+
   def export(self, filepath):
-    print('exporting audio file: {}...'.format(filepath), end='')
-    t1 = time.time()
+    timer = Timer('exporting audio file: {}...'.format(filepath))
     self.audioSegment.export(filepath)
-    print(' done ({} seconds)'.format(time.time()-t1))
+    timer.end()
 
   def destroy(self):
     pass
@@ -86,15 +86,15 @@ class App:
     chunks = []
     for i in range(chunkCount):
       startFrame = int(i * chunkFrameCount)
-      endFrame = startFrame + chunkFrameCount
+      endFrame = int(min(startFrame + chunkFrameCount, totalFrameCount))
       frames = []
-      for frameidx in range(startFrame, startFrame + chunkFrameCount):
+      for frameidx in range(startFrame, endFrame):
         fr = audioSegment.get_frame(frameidx)
         # print('type: '+str(type(fr))) # => bytes
         frames.append(fr)
 
       print('got chunk {}/{}'.format(i+1, chunkCount), end='\r')
-      chunks.append(Chunk(frames, startFrame, i))
+      chunks.append(Chunk(frames, startFrame))
 
     return chunks
 
@@ -130,11 +130,25 @@ class App:
 
     audioSegment._data = bytes(data)
 
+  def writeChunkFile(chunks, chunkfile, frameRate):
+    json_list = []
+
+    loudestFirstList = sorted(chunks, key=lambda x: x.volume, reverse=True)
+    for chunk in loudestFirstList:
+      json_list.append(json.dumps({'startTime': chunk.startTime(frameRate), 'duration': chunk.duration(frameRate)}, separators=(',',':')))
+
+    with open(chunkfile, 'w') as f:
+      f.write('\n'.join(json_list))
+
+
+
+
 if __name__ == '__main__':
   parser = OptionParser()
   parser.add_option('-v', '--verbose', dest='verbose', action="store_true", default=False)
   parser.add_option('-i', '--in-file', dest='infile', default='data/test.ogg')
   parser.add_option('-s', '--chunksize', dest='chunkSize', default=1)
+  parser.add_option('-c', '--chunk-file', dest='chunkfile', default=None)
   # parser.add_option('-o', '--out-file', dest='outfile', default=None)
   # parser.add_option('-y', '--yml', '--yaml', '--config-file', dest='config_file', default=None)
 
