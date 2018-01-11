@@ -22,4 +22,7 @@ python -m venome.sortframes -c data/sorted/chunks.txt --fps 25 -i data/test.mp4.
 
 # convert frames to movie
 # http://hamelot.io/visualization/using-ffmpeg-to-convert-a-set-of-images-into-a-video/
-ffmpeg -r 25 -f image2 -i data/sorted/frames/f%d.png -vcodec libx264 -crf 25  -pix_fmt yuv420p data/sorted/test.mp4
+ffmpeg -r 25 -f image2 -i data/sorted/frames/f%d.png -vcodec libx264 -crf 25 -pix_fmt yuv420p data/sorted/test.mp4
+
+# convert frames to movie
+ffmpeg -r 25 -f image2 -i data/sorted/frames/f%d.png -i data/sorted/test.mp4.ogg-sorted.mp3 -vcodec libx264 -crf 25 -pix_fmt yuv420p -acodec copy data/sorted/test-with-audio.mp4
