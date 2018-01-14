@@ -15,7 +15,7 @@ if __name__ == '__main__':
   parser.add_option('-o', '--out-file', dest='outfile', default=None)
   parser.add_option('-s', '--chunk-size', dest='chunk_size', default=1) # seconds
   parser.add_option('-f', '--fps', dest='fps', default=25) # TODO: default to infile's fps
-  parser.add_option('-w', '--work-folder-postfix', dest='workfolder_postfix', default='_chunksort_volume')
+  parser.add_option('-w', '--work-folder-postfix', dest='workfolder_postfix', default='auto')
   parser.add_option('--vcodec', dest='vcodec', default='libx264')
   parser.add_option('--pix_fmt', dest='pix_fmt', default='yuv420p')
   parser.add_option('--audio-postfix', dest='audio_postfix', default='_audio.mp3')
@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
   bCleanFrames = opts.frames_cleanup
   bCleanWorkFolder = opts.workfolder_cleanup
-  workFolder = opts.infile+opts.workfolder_postfix
+  workFolder = opts.infile+('_chunksort_volume_chunksize{}'.format(opts.chunk_size) if opts.workfolder_postfix == 'auto' else foropts.workfolder_postfix)
   audioFilePath = opts.infile+opts.audio_postfix
   framesPath = opts.infile+opts.frames_postfix
   sortedFramesPath = os.path.join(workFolder, 'frames', 'f{:d}.png')

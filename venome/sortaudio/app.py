@@ -5,7 +5,7 @@ import math, json
 from .timer import Timer
 
 class Chunk:
-  def __init__(self, frames, startFrame, sortedIndex=None, volume=None):
+  def __init__(self, frames, startFrame, sortedIndex=None, volume=0.0):
     self.frames = frames
     self.startFrame = startFrame
     self.volume = volume
@@ -45,13 +45,12 @@ class App:
     # data = audio.get_array_of_samples()
 
   def process(self, chunkMs, chunkfile=None):
-
     timer = Timer('getChunks')
     chunks = App.getChunks(self.audioSegment, chunkMs)
     timer.end()
 
     timer = Timer('populateVolumes')
-    App.populateVolumes(chunks, self.audioSegment.frame_width)
+    self.populateVolumes(chunks, self.audioSegment.frame_width)
     timer.end()
 
     # timer = Timer('populateSortedIndices')
@@ -98,18 +97,23 @@ class App:
 
     return chunks
 
-  def populateVolumes(chunks, frameWidth):
+  def populateVolumes(self, chunks, frameWidth):
     for i, chunk in enumerate(chunks):
-      # frameCount = len(chunk.data) / frameWidth
-      # for frame in np.array(chunk.data).reshape(frameCount, frameWidth)
-
-      chunkSum = 0
-
       if len(chunk.frames) > 0:
         for frame in chunk.frames:
-          for byte in frame:
-            chunkSum += byte
-        chunk.volume = chunkSum / len(chunk.frames)
+          seg = AudioSegment(
+            # raw audio data (bytes)
+            data=frame,
+            # 2 byte (16 bit) samples
+            sample_width=self.audioSegment.sample_width,
+            # 44.1 kHz frame rate
+            frame_rate=self.audioSegment.frame_rate,
+            # stereo
+            channels=self.audioSegment.channels)
+          # for byte in frame:
+          #   chunkSum += byte
+          chunk.volume += seg.dBFS
+        chunk.volume /= len(chunk.frames)
         print('volume of chunk {}/{}: {}'.format(i+1, len(chunks), chunk.volume), end='\r')
 
   # def populateSortedIndices(chunks):
