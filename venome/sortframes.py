@@ -50,8 +50,8 @@ class App:
     frameCount = int(duration * fps)
 
     for idx in range(startFrame, startFrame + frameCount + 1):
-      self.processFrame(self.frameCursor, idx)
-      self.frameCursor += 1
+      if self.processFrame(self.frameCursor, idx):
+        self.frameCursor += 1
 
   def processFrame(self, newIndex, originalIndex):
     infile = self.opts.infile
@@ -59,7 +59,13 @@ class App:
 
     inpath = infile.format(self.firstInFileNumber + originalIndex)
     outpath = outfile.format(newIndex)
+
+    if not os.path.isfile(inpath):
+      print('COULD NOT FIND FRAME FILE: {}'.format(inpath))
+      return False
+
     shutil.copy(inpath, outpath)
+    return True
 
   def destroy(self):
     pass
