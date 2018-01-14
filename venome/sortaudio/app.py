@@ -5,17 +5,17 @@ import math, json
 from .timer import Timer
 
 class Chunk:
-  def __init__(self, frames, startFrame, sortedIndex=None, volume=0.0):
+  def __init__(self, frames, startFrame, frameCount=None, volume=0.0):
     self.frames = frames
     self.startFrame = startFrame
+    self.frameCount = frameCount if frameCount else len(frames)
     self.volume = volume
-    self.sortedIndex = sortedIndex
 
   def startTime(self, fps):
     return self.startFrame / fps
 
   def duration(self, fps):
-    return len(self.frames) / fps if self.frames else 0
+    return self.frameCount / fps if self.frames else 0
 
 class App:
   def __init__(self, opts={}):
@@ -99,28 +99,13 @@ class App:
 
   def populateVolumes(self, chunks, frameWidth):
     for i, chunk in enumerate(chunks):
-      if len(chunk.frames) > 0:
-        for frame in chunk.frames:
-          seg = AudioSegment(
-            # raw audio data (bytes)
-            data=frame,
-            # 2 byte (16 bit) samples
-            sample_width=self.audioSegment.sample_width,
-            # 44.1 kHz frame rate
-            frame_rate=self.audioSegment.frame_rate,
-            # stereo
-            channels=self.audioSegment.channels)
-          # for byte in frame:
-          #   chunkSum += byte
-          chunk.volume += seg.dBFS
-        chunk.volume /= len(chunk.frames)
-        print('volume of chunk {}/{}: {}'.format(i+1, len(chunks), chunk.volume), end='\r')
-
-  # def populateSortedIndices(chunks):
-  #   loudestFirstList = sorted(chunks, key=lambda x: x.volume, reverse=True)
-  #   for i, chunk in enumerate(loudestFirstList):
-  #     chunk.sortedIndex = i
-  #     print('sorted chunk {}/{}'.format(i+1, len(chunks)), end='\r')
+      fps = self.audioSegment.frame_rate
+      _from = chunk.startTime(fps)
+      _to = _from + chunk.duration(fps)
+      seg = self.audioSegment[_from:_to]
+      chunk.volume = seg.dBFS
+      # chunk.volume /= len(chunk.frames)
+      print('volume of chunk {}/{}: {}'.format(i+1, len(chunks), chunk.volume), end='\r')
 
   def applySortedChunks(audioSegment, chunks):
     data = bytearray([])
